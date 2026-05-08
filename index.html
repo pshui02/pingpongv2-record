@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>乒乓全能紀錄系統 - 支援雙打版</title>
+    
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f2f5; padding: 15px; color: #333; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; font-size: 1.6rem; margin-bottom: 20px; }
+        .section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+        input, select, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-danger { background: #ea4335; }
+        .btn-success { background: #34a853; }
+        .player-chip { background: #e8f0fe; padding: 8px 15px; border-radius: 20px; font-size: 0.9em; border: 1px solid #d2e3fc; display: inline-block; margin: 3px; cursor: pointer; }
+        
+        /* 模式切換按鈕樣式 */
+        .mode-switch { display: flex; justify-content: center; margin-bottom: 20px; background: #eee; padding: 5px; border-radius: 10px; }
+        .mode-btn { flex: 1; padding: 10px; border-radius: 8px; border: none; background: none; color: #666; cursor: pointer; }
+        .mode-btn.active { background: white; color: #1a73e8; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        .team-box { border: 2px dashed #ddd; padding: 10px; border-radius: 10px; display: flex; flex-direction: column; gap: 5px; }
+        .matrix-wrapper { overflow-x: auto; margin: 15px 0; border-radius: 8px; border: 1px solid #ddd; }
+        table { width: 100%; border-collapse: collapse; min-width: 450px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        .has-value { background: #e6f4ea; color: #1e8e3e; font-weight: bold; }
+        .history-box { max-height: 250px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .btn-undo { background: #5f6368; padding: 5px 10px; font-size: 0.8em; margin-left: 10px; border-radius: 5px; }
+        .vs-tag { background: #666; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏓 乒乓全能紀錄系統</h1>
+
+    <div class="section">
+        <h3>1. 球員管理</h3>
+        <div class="flex-row">
+            <input type="text" id="playerName" placeholder="球員姓名">
+            <button onclick="addPlayer()">加入</button>
+            <button class="btn-danger" onclick="clearAllData()">重置</button>
+        </div>
+        <div id="playerList" style="margin-top: 15px; text-align: center;"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. 紀錄新對局</h3>
+        <div class="mode-switch">
+            <button class="mode-btn active" id="btnSingle" onclick="switchMode('single')">單打 (1 VS 1)</button>
+            <button class="mode-btn" id="btnDouble" onclick="switchMode('double')">雙打 (2 VS 2)</button>
+        </div>
+
+        <div class="flex-row" id="recordArea">
+            </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="btn-success" style="width: 80%;" onclick="recordMatch()">紀錄對賽結果</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>3. 單打對陣矩陣 (誰跟誰打過)</h3>
+        <div class="matrix-wrapper">
+            <table id="vsMatrix">
+                <thead><tr id="matrixHead"></tr></thead>
+                <tbody id="matrixBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section" style="border:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3>4. 對賽歷史紀錄</h3>
+            <button onclick="exportCSV()">匯出 CSV</button>
+        </div>
+        <div id="history" class="history-box">目前沒有紀錄</div>
+    </div>
+</div>
+
+<script>
+    let players = [];
+    let playerTotals = {};
+    let vsCounts = {}; // 單打兩兩計數
+    let historyLog = [];
+    let currentMode = 'single'; // 'single' 或 'double'
+
+    window.onload = function() {
+        const saved = localStorage.getItem('pingpong_v3_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            players = data.players || [];
+            playerTotals = data.playerTotals || {};
+            vsCounts = data.vsCounts || {};
+            historyLog = data.historyLog || [];
+        }
+        switchMode('single');
+        updateUI();
+    };
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('btnSingle').classList.toggle('active', mode === 'single');
+        document.getElementById('btnDouble').classList.toggle('active', mode === 'double');
+        
+        const area = document.getElementById('recordArea');
+        const options = players.map(p => `<option value="${p}">${p}</option>`).join('');
+        
+        if (mode === 'single') {
+            area.innerHTML = `
+                <select id="p1">${options}</select>
+                <b style="font-size: 1.2em; color: #666;">VS</b>
+                <select id="p2">${options}</select>
+            `;
+        } else {
+            area.innerHTML = `
+                <div class="team-box">
+                    <span>隊伍 A</span>
+                    <select id="p1">${options}</select>
+                    <select id="p2">${options}</select>
+                </div>
+                <b style="font-size: 1.2em; color: #666;">VS</b>
+                <div class="team-box">
+                    <span>隊伍 B</span>
+                    <select id="p3">${options}</select>
+                    <select id="p4">${options}</select>
+                </div>
+            `;
+        }
+    }
+
+    function addPlayer() {
+        const nameInput = document.getElementById('playerName');
+        const name = nameInput.value.trim();
+        if (!name || players.includes(name)) return;
+        players.push(name);
+        playerTotals[name] = 0;
+        nameInput.value = '';
+        switchMode(currentMode);
+        updateUI();
+        saveToLocal();
+    }
+
+    function recordMatch() {
+        const p1 = document.getElementById('p1').value;
+        const p2 = document.getElementById('p2').value;
+        let p3 = null, p4 = null;
+        let matchPlayers = [p1, p2];
+
+        if (currentMode === 'double') {
+            p3 = document.getElementById('p3').value;
+            p4 = document.getElementById('p4').value;
+            matchPlayers = [p1, p2, p3, p4];
+        }
+
+        // 檢查重複球員
+        if (new Set(matchPlayers).size !== matchPlayers.length) {
+            return alert("球員不能重複！");
+        }
+
+        // 1. 更新個人總數
+        matchPlayers.forEach(p => playerTotals[p]++);
+
+        // 2. 更新矩陣次數 (僅限單打)
+        let pairKey = "";
+        if (currentMode === 'single') {
+            pairKey = [p1, p2].sort().join(" vs ");
+            vsCounts[pairKey] = (vsCounts[pairKey] || 0) + 1;
+        }
+
+        // 3. 紀錄歷史
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        historyLog.unshift({
+            id: Date.now(),
+            mode: currentMode,
+            p1, p2, p3, p4,
+            time: timeStr,
+            vsKey: pairKey
+        });
+
+        updateUI();
+        saveToLocal();
+    }
+
+    function undoMatch(id) {
+        if (!confirm("確定撤銷這筆紀錄？")) return;
+        const idx = historyLog.findIndex(h => h.id === id);
+        if (idx > -1) {
+            const h = historyLog[idx];
+            // 扣除個人數
+            [h.p1, h.p2, h.p3, h.p4].filter(p => p).forEach(p => playerTotals[p] = Math.max(0, playerTotals[p] - 1));
+            // 扣除矩陣
+            if (h.mode === 'single') {
+                vsCounts[h.vsKey] = Math.max(0, (vsCounts[h.vsKey] || 0) - 1);
+            }
+            historyLog.splice(idx, 1);
+            updateUI();
+            saveToLocal();
+        }
+    }
+
+    function editPlayer(oldName) {
+        const newName = prompt(`修改 "${oldName}" 的名字 (留空則刪除球員)：`, oldName);
+        if (newName === null) return;
+        if (newName.trim() === "") {
+            if (confirm(`刪除 "${oldName}"？相關歷史也會被清空。`)) {
+                players = players.filter(p => p !== oldName);
+                delete playerTotals[oldName];
+                for(let k in vsCounts) if(k.includes(oldName)) delete vsCounts[k];
+                historyLog = historyLog.filter(h => h.p1!==oldName && h.p2!==oldName && h.p3!==oldName && h.p4!==oldName);
+                switchMode(currentMode);
+                updateUI();
+                saveToLocal();
+            }
+            return;
+        }
+        const n = newName.trim();
+        if (players.includes(n)) return alert("名字重複");
+        
+        const i = players.indexOf(oldName);
+        players[i] = n;
+        playerTotals[n] = playerTotals[oldName]; delete playerTotals[oldName];
+        
+        // 更新歷史與矩陣 key
+        historyLog.forEach(h => { 
+            if(h.p1 === oldName) h.p1 = n; if(h.p2 === oldName) h.p2 = n;
+            if(h.p3 === oldName) h.p3 = n; if(h.p4 === oldName) h.p4 = n;
+            if(h.vsKey) h.vsKey = h.vsKey.replace(oldName, n).split(" vs ").sort().join(" vs ");
+        });
+        const newVs = {};
+        for(let k in vsCounts) {
+            const nk = k.includes(oldName) ? k.replace(oldName, n).split(" vs ").sort().join(" vs ") : k;
+            newVs[nk] = vsCounts[k];
+        }
+        vsCounts = newVs;
+        
+        switchMode(currentMode);
+        updateUI();
+        saveToLocal();
+    }
+
+    function updateUI() {
+        const listDiv = document.getElementById('playerList');
+        listDiv.innerHTML = players.map(p => `
+            <span class="player-chip" onclick="editPlayer('${p}')">${p} (<b>${playerTotals[p]}</b>)</span>
+        `).join('');
+
+        const head = document.getElementById('matrixHead');
+        const body = document.getElementById('matrixBody');
+        head.innerHTML = '<th>球員</th>' + players.map(p => `<th>${p}</th>`).join('');
+        body.innerHTML = '';
+        players.forEach((pRow, i) => {
+            let rowHtml = `<tr><td><b>${pRow}</b></td>`;
+            players.forEach((pCol, j) => {
+                if (i === j) rowHtml += `<td style="color:#ccc;">-</td>`;
+                else {
+                    const count = vsCounts[[pRow, pCol].sort().join(" vs ")] || 0;
+                    rowHtml += `<td class="${count > 0 ? 'has-value' : ''}">${count}</td>`;
+                }
+            });
+            body.innerHTML += rowHtml + '</tr>';
+        });
+
+        const historyDiv = document.getElementById('history');
+        if (historyLog.length === 0) historyDiv.innerHTML = "目前沒有紀錄";
+        else {
+            historyDiv.innerHTML = historyLog.map(h => `
+                <div class="history-item">
+                    <div>
+                        <span class="vs-tag" style="background:${h.mode==='single'?'#1a73e8':'#34a853'}">${h.mode==='single'?'單':'雙'}</span>
+                        <b>${h.p1} ${h.p2 ? 'vs ' + h.p2 : ''}</b>
+                        ${h.mode==='double' ? `<span style="color:#666;">vs</span> <b>${h.p3} ${h.p4}</b>` : ''}
+                    </div>
+                    <div>
+                        <span style="color: #999; font-size: 0.8em;">${h.time}</span>
+                        <button class="btn-undo" onclick="undoMatch(${h.id})">撤銷</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    function saveToLocal() {
+        localStorage.setItem('pingpong_v3_data', JSON.stringify({ players, playerTotals, vsCounts, historyLog }));
+    }
+
+    function clearAllData() {
+        if (confirm("清空所有資料？")) {
+            localStorage.removeItem('pingpong_v3_data');
+            location.reload();
+        }
+    }
+
+    function exportCSV() {
+        let csv = "\uFEFF球員,總參賽次數\n";
+        players.forEach(p => csv += `${p},${playerTotals[p]}\n`);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `乒乓紀錄_${new Date().toLocaleDateString()}.csv`;
+        link.click();
+    }
+</script>
+
+</body>
+</html>
