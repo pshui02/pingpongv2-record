@@ -3,204 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- 1. 使用系統內建 Emoji 作為圖標，這是最穩定的做法 -->
+    <!-- 網頁圖示：使用內建 Emoji 確保 100% 顯示 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏓</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%231a73e8%22/><text x=%225%22 y=%2280%22 font-size=%2280%22>🏓</text></svg>">
     
     <title>🏓 乒乓全能紀錄</title>
     
     <style>
-        body { font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; background: #f0f2f5; padding: 15px; color: #333; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; }
-        .header h1 { color: #1a73e8; margin: 0; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .section { margin-bottom: 20px; }
-        .flex-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0; }
-        input, select, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
-        button { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-record { background: #34a853; width: 100%; margin-top: 10px; font-size: 1.1rem; }
-        .mode-switch { display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 15px; }
-        .mode-btn { flex: 1; text-align: center; padding: 8px; cursor: pointer; border-radius: 8px; font-weight: bold; color: #666; }
-        .mode-btn.active { background: white; color: #1a73e8; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .matrix-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; background: #fff; }
-        th, td { border: 1px solid #f0f0f0; padding: 10px; text-align: center; }
-        th { background: #f8f9fa; }
-        .highlight { background: #e6f4ea; font-weight: bold; color: #1e8e3e; }
-        .history-list { max-height: 200px; overflow-y: auto; background: #f9f9f9; border-radius: 8px; padding: 10px; font-size: 14px; }
-        .history-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; }
-        .partner-tag { display: inline-block; background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 15px; margin: 3px; border: 1px solid #ffe0b2; }
+        body { font-family: -apple-system, sans-serif; background: #f4f7f9; padding: 15px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 2px solid #1a73e8; margin-bottom: 20px; padding-bottom: 10px; }
+        .section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .flex-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 10px 0; }
+        input, select, button { padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; }
+        button { cursor: pointer; border: none; font-weight: bold; }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-success { background: #34a853; color: white; width: 100%; margin-top: 10px; height: 45px; }
+        .btn-danger { background: #ea4335; color: white; padding: 5px 10px; font-size: 12px; }
+        .btn-edit { background: #fbbc05; color: black; padding: 5px 10px; font-size: 12px; }
+        
+        /* 球員管理樣式 */
+        .player-item { background: #f8f9fa; border: 1px solid #e0e0e0; padding: 8px 12px; border-radius: 10px; display: flex; align-items: center; gap: 8px; margin: 5px; }
+        
+        /* 模式切換 */
+        .mode-box { display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-radius: 8px; transition: 0.3s; }
+        .mode-btn.active { background: white; color: #1a73e8; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* 矩陣表格 */
+        .scroll-x { overflow-x: auto; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; }
+        th, td { border: 1px solid #eee; padding: 10px; }
+        th { background: #f1f3f4; }
+        .has-val { background: #e6f4ea; font-weight: bold; }
+
+        /* 歷史紀錄 */
+        .log-box { max-height: 250px; overflow-y: auto; background: #fafafa; border-radius: 8px; padding: 10px; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>🏓 乒乓全能紀錄系統</h1>
-    </div>
+    <div class="header"><h1>🏓 乒乓全能紀錄系統</h1></div>
 
     <!-- 1. 球員管理 -->
     <div class="section">
+        <h3>1. 球員管理</h3>
         <div class="flex-row">
-            <input type="text" id="pName" placeholder="球員名字" style="flex:1">
-            <button onclick="addPlayer()">加入</button>
-            <button onclick="clearData()" style="background:#ea4335">重置</button>
+            <input type="text" id="newPlayer" placeholder="新球員姓名" style="flex:1">
+            <button class="btn-primary" onclick="addPlayer()">加入</button>
+            <button onclick="clearAll()" style="background:#666; color:white">全部重置</button>
         </div>
-        <div id="playerChips" style="text-align:center"></div>
+        <div id="playerList" class="flex-row"></div>
     </div>
 
-    <!-- 2. 對賽紀錄 -->
+    <!-- 2. 紀錄比賽 -->
     <div class="section">
-        <div class="mode-switch">
-            <div id="m1" class="mode-btn active" onclick="setMode('single')">單打</div>
-            <div id="m2" class="mode-btn" onclick="setMode('double')">雙打</div>
+        <h3>2. 紀錄比賽</h3>
+        <div class="mode-box">
+            <div id="mSingle" class="mode-btn active" onclick="switchMode('single')">單打</div>
+            <div id="mDouble" class="mode-btn" onclick="switchMode('double')">雙打</div>
         </div>
-        <div id="matchArea" class="flex-row"></div>
-        <button class="btn-record" onclick="saveMatch()">💾 紀錄比賽</button>
+        <div id="matchInputs" class="flex-row"></div>
+        <button class="btn-success" onclick="saveMatch()">✅ 紀錄對賽</button>
     </div>
 
     <!-- 3. 單打矩陣 -->
     <div class="section">
-        <h3>📊 單打勝負對賽表</h3>
-        <div class="matrix-container">
-            <table id="vsTable"></table>
-        </div>
+        <h3>📊 單打矩陣統計</h3>
+        <div class="scroll-x"><table id="matrix"></table></div>
     </div>
 
-    <!-- 4. 雙打顯示 -->
+    <!-- 4. 雙打排行 -->
     <div class="section">
         <h3>👫 雙打搭檔排行</h3>
-        <div id="doubleDisplay" style="text-align:center">暫無紀錄</div>
+        <div id="doubleRank" style="text-align:center; color:#888;">暫無紀錄</div>
     </div>
 
-    <!-- 5. 流水帳與 CSV -->
-    <div class="section">
+    <!-- 5. 歷史與匯出 -->
+    <div class="section" style="border:none">
         <div style="display:flex; justify-content:space-between; align-items:center">
             <h3>📝 歷史紀錄</h3>
-            <button onclick="downloadCSV()" style="background:#fbbc05; color:black">📥 匯出 CSV</button>
+            <button onclick="exportCSV()" style="background:#fbbc05">📥 匯出 CSV</button>
         </div>
-        <div id="historyList" class="history-list"></div>
+        <div id="historyLog" class="log-box"></div>
     </div>
 </div>
 
 <script>
-    let data = JSON.parse(localStorage.getItem('pingpong_v9')) || {
+    let db = JSON.parse(localStorage.getItem('pingpong_v10')) || {
         players: [],
         totals: {},
-        vsMatrix: {},
-        partners: {},
+        vs: {},
+        pairs: {},
         logs: []
     };
     let currentMode = 'single';
 
-    function setMode(m) {
-        currentMode = m;
-        document.getElementById('m1').className = m === 'single' ? 'mode-btn active' : 'mode-btn';
-        document.getElementById('m2').className = m === 'double' ? 'mode-btn active' : 'mode-btn';
-        renderInputs();
-    }
-
-    function renderInputs() {
-        const area = document.getElementById('matchArea');
-        const options = data.players.map(p => `<option value="${p}">${p}</option>`).join('');
-        if (currentMode === 'single') {
-            area.innerHTML = `<select id="p1">${options}</select> <b>VS</b> <select id="p2">${options}</select>`;
-        } else {
-            area.innerHTML = `
-                <div style="border:1px solid #ddd;padding:5px;border-radius:8px">A隊:<br><select id="p1">${options}</select><br><select id="p2">${options}</select></div>
-                <b>VS</b>
-                <div style="border:1px solid #ddd;padding:5px;border-radius:8px">B隊:<br><select id="p3">${options}</select><br><select id="p4">${options}</select></div>`;
-        }
-    }
-
+    // --- 球員功能 ---
     function addPlayer() {
-        const n = document.getElementById('pName').value.trim();
-        if (n && !data.players.includes(n)) {
-            data.players.push(n);
-            data.totals[n] = 0;
-            document.getElementById('pName').value = '';
+        const input = document.getElementById('newPlayer');
+        const name = input.value.trim();
+        if (name && !db.players.includes(name)) {
+            db.players.push(name);
+            db.totals[name] = 0;
+            input.value = '';
             refresh();
         }
     }
 
-    function saveMatch() {
-        if (data.players.length < (currentMode === 'single' ? 2 : 4)) return alert("球員不足");
-        const p1 = document.getElementById('p1').value;
-        const p2 = document.getElementById('p2').value;
-        let p3, p4;
-        let participants = [p1, p2];
-
-        if (currentMode === 'single') {
-            if (p1 === p2) return alert("不能和自己打");
-            const key = [p1, p2].sort().join(" v ");
-            data.vsMatrix[key] = (data.vsMatrix[key] || 0) + 1;
-        } else {
-            p3 = document.getElementById('p3').value;
-            p4 = document.getElementById('p4').value;
-            participants = [p1, p2, p3, p4];
-            if (new Set(participants).size !== 4) return alert("球員不能重複");
-            const pairA = [p1, p2].sort().join(" & ");
-            const pairB = [p3, p4].sort().join(" & ");
-            data.partners[pairA] = (data.partners[pairA] || 0) + 1;
-            data.partners[pairB] = (data.partners[pairB] || 0) + 1;
+    function editPlayer(oldName) {
+        const newName = prompt(`將「${oldName}」修改為：`, oldName);
+        if (newName && newName !== oldName) {
+            // 1. 更新球員清單
+            db.players = db.players.map(p => p === oldName ? newName : p);
+            // 2. 更新總計
+            db.totals[newName] = db.totals[oldName];
+            delete db.totals[oldName];
+            // 3. 更新歷史紀錄中的名字
+            db.logs.forEach(l => {
+                if(l.p1 === oldName) l.p1 = newName;
+                if(l.p2 === oldName) l.p2 = newName;
+                if(l.p3 === oldName) l.p3 = newName;
+                if(l.p4 === oldName) l.p4 = newName;
+            });
+            // 4. 更新矩陣與搭檔 (重新計算最安全)
+            recalculateStats();
+            refresh();
         }
+    }
 
-        participants.forEach(p => data.totals[p]++);
-        data.logs.unshift({ id: Date.now(), mode: currentMode, p1, p2, p3, p4, time: new Date().toLocaleString() });
+    function deletePlayer(name) {
+        if (confirm(`確定要刪除「${name}」嗎？這會清除與其相關的所有次數！`)) {
+            db.players = db.players.filter(p => p !== name);
+            delete db.totals[name];
+            // 同時過濾掉有該球員的比賽紀錄
+            db.logs = db.logs.filter(l => l.p1 !== name && l.p2 !== name && l.p3 !== name && l.p4 !== name);
+            recalculateStats();
+            refresh();
+        }
+    }
+
+    function recalculateStats() {
+        db.vs = {}; db.pairs = {};
+        Object.keys(db.totals).forEach(k => db.totals[k] = 0);
+        db.logs.forEach(l => {
+            [l.p1, l.p2, l.p3, l.p4].filter(p => p).forEach(p => db.totals[p]++);
+            if (l.mode === 'single') {
+                const key = [l.p1, l.p2].sort().join(" v ");
+                db.vs[key] = (db.vs[key] || 0) + 1;
+            } else {
+                const kA = [l.p1, l.p2].sort().join(" & ");
+                const kB = [l.p3, l.p4].sort().join(" & ");
+                db.pairs[kA] = (db.pairs[kA] || 0) + 1;
+                db.pairs[kB] = (db.pairs[kB] || 0) + 1;
+            }
+        });
+    }
+
+    // --- 比賽功能 ---
+    function switchMode(m) {
+        currentMode = m;
+        document.getElementById('mSingle').className = m === 'single' ? 'mode-btn active' : 'mode-btn';
+        document.getElementById('mDouble').className = m === 'double' ? 'mode-btn active' : 'mode-btn';
+        renderInputs();
+    }
+
+    function renderInputs() {
+        const area = document.getElementById('matchInputs');
+        const opt = db.players.map(p => `<option value="${p}">${p}</option>`).join('');
+        if (currentMode === 'single') {
+            area.innerHTML = `<select id="s1">${opt}</select> <b>VS</b> <select id="s2">${opt}</select>`;
+        } else {
+            area.innerHTML = `<div style="border:1px solid #ddd;padding:8px;border-radius:8px">A:<br><select id="s1">${opt}</select><br><select id="s2">${opt}</select></div>
+                             <b>VS</b>
+                             <div style="border:1px solid #ddd;padding:8px;border-radius:8px">B:<br><select id="s3">${opt}</select><br><select id="s4">${opt}</select></div>`;
+        }
+    }
+
+    function saveMatch() {
+        if (db.players.length < (currentMode === 'single' ? 2 : 4)) return alert("球員不足");
+        const p1 = document.getElementById('s1').value, p2 = document.getElementById('s2').value;
+        let p3, p4, team = [p1, p2];
+        if (currentMode === 'double') {
+            p3 = document.getElementById('s3').value; p4 = document.getElementById('s4').value;
+            team = [p1, p2, p3, p4];
+        }
+        if (new Set(team).size !== team.length) return alert("球員不能重複");
+
+        db.logs.unshift({ id: Date.now(), mode: currentMode, p1, p2, p3, p4, time: new Date().toLocaleString('zh-HK') });
+        recalculateStats();
         refresh();
     }
 
+    function deleteLog(id) {
+        if (confirm("確定撤銷這場對賽？")) {
+            db.logs = db.logs.filter(l => l.id !== id);
+            recalculateStats();
+            refresh();
+        }
+    }
+
+    // --- 界面更新 ---
     function refresh() {
-        localStorage.setItem('pingpong_v9', JSON.stringify(data));
+        localStorage.setItem('pingpong_v10', JSON.stringify(db));
         renderInputs();
-        // 球員 Chip
-        document.getElementById('playerChips').innerHTML = data.players.map(p => `<span class="partner-tag" style="background:#e8f0fe;color:#1a73e8">${p} (${data.totals[p]})</span>`).join('');
-        // 單打矩陣
-        let html = '<tr><th></th>' + data.players.map(p => `<th>${p}</th>`).join('') + '</tr>';
-        data.players.forEach(r => {
-            html += `<tr><td><b>${r}</b></td>`;
-            data.players.forEach(c => {
-                if (r === c) html += `<td>-</td>`;
+        
+        // 渲染球員管理
+        document.getElementById('playerList').innerHTML = db.players.map(p => `
+            <div class="player-item">
+                <b>${p}</b> <span>(${db.totals[p]})</span>
+                <button class="btn-edit" onclick="editPlayer('${p}')">改名</button>
+                <button class="btn-danger" onclick="deletePlayer('${p}')">刪</button>
+            </div>`).join('');
+
+        // 渲染矩陣
+        let mHtml = '<tr><th></th>' + db.players.map(p => `<th>${p}</th>`).join('') + '</tr>';
+        db.players.forEach(r => {
+            mHtml += `<tr><td><b>${r}</b></td>`;
+            db.players.forEach(c => {
+                if(r===c) mHtml += '<td>-</td>';
                 else {
-                    const count = data.vsMatrix[[r, c].sort().join(" v ")] || 0;
-                    html += `<td class="${count > 0 ? 'highlight' : ''}">${count}</td>`;
+                    const count = db.vs[[r, c].sort().join(" v ")] || 0;
+                    mHtml += `<td class="${count>0?'has-val':''}">${count}</td>`;
                 }
             });
-            html += `</tr>`;
+            mHtml += '</tr>';
         });
-        document.getElementById('vsTable').innerHTML = html;
-        // 雙打
-        const pSorted = Object.entries(data.partners).sort((a,b) => b[1]-a[1]);
-        document.getElementById('doubleDisplay').innerHTML = pSorted.length ? pSorted.map(e => `<div class="partner-tag">${e[0]} : ${e[1]}次</div>`).join('') : "暫無紀錄";
-        // 歷史
-        document.getElementById('historyList').innerHTML = data.logs.map(l => `<div class="history-item"><span>${l.mode==='single'?'[單]':'[雙]'} ${l.p1} ${l.p2} ${l.p3?'vs '+l.p3+' '+l.p4:''}</span><small>${l.time}</small></div>`).join('');
+        document.getElementById('matrix').innerHTML = mHtml;
+
+        // 雙打排行
+        const pairArr = Object.entries(db.pairs).sort((a,b)=>b[1]-a[1]);
+        document.getElementById('doubleRank').innerHTML = pairArr.length ? 
+            pairArr.map(e => `<span style="display:inline-block; margin:5px; padding:5px 10px; background:#fff3e0; border-radius:15px; font-size:13px">${e[0]}：${e[1]}次</span>`).join('') : "暫無紀錄";
+
+        // 歷史紀錄
+        document.getElementById('historyLog').innerHTML = db.logs.map(l => `
+            <div class="log-item">
+                <span>[${l.mode==='single'?'單':'雙'}] ${l.p1} ${l.p2} ${l.p3?'vs '+l.p3+' '+l.p4:''}</span>
+                <div><small style="color:#999; margin-right:8px">${l.time}</small>
+                <button class="btn-danger" onclick="deleteLog(${l.id})">撤銷</button></div>
+            </div>`).join('');
     }
 
-    function downloadCSV() {
-        let csv = "\uFEFF球員累計\n球員,次數\n";
-        data.players.forEach(p => csv += `${p},${data.totals[p]}\n`);
+    function exportCSV() {
+        let csv = "\uFEFF單打矩陣統計\n,";
+        csv += db.players.join(",") + "\n";
+        db.players.forEach(r => {
+            csv += r + "," + db.players.map(c => r===c ? "-" : (db.vs[[r,c].sort().join(" v ")] || 0)).join(",") + "\n";
+        });
+        csv += "\n雙打排行\n組合,次數\n";
+        Object.entries(db.pairs).forEach(e => csv += `${e[0]},${e[1]}\n`);
+        csv += "\n全歷史紀錄\n時間,模式,P1,P2,P3,P4\n";
+        db.logs.forEach(l => csv += `${l.time},${l.mode},${l.p1},${l.p2},${l.p3||''},${l.p4||''}\n`);
         
-        csv += "\n單打對賽矩陣\n,";
-        csv += data.players.join(",") + "\n";
-        data.players.forEach(r => {
-            csv += r + "," + data.players.map(c => r===c ? "-" : (data.vsMatrix[[r,c].sort().join(" v ")] || 0)).join(",") + "\n";
-        });
-
-        csv += "\n雙打搭檔排行\n組合,次數\n";
-        Object.entries(data.partners).forEach(e => csv += `${e[0]},${e[1]}\n`);
-
-        csv += "\n詳細流水帳\n時間,模式,P1,P2,P3,P4\n";
-        data.logs.forEach(l => csv += `${l.time},${l.mode},${l.p1},${l.p2},${l.p3||''},${l.p4||''}\n`);
-
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "乒乓紀錄.csv";
-        link.click();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `乒乓球數據_${new Date().toLocaleDateString()}.csv`;
+        a.click();
     }
 
-    function clearData() { if(confirm("確定刪除所有紀錄？")) { localStorage.clear(); location.reload(); } }
-    
+    function clearAll() { if(confirm("確定清除所有球員及歷史紀錄？")) { localStorage.clear(); location.reload(); } }
+
     refresh();
 </script>
 </body>
